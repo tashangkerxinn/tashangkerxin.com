@@ -228,8 +228,7 @@
   button.arrow:hover { opacity: .5; }
   button.arrow:focus-visible { outline: 1px solid var(--fg); outline-offset: 2px; }
   .news-docs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 28px; max-width: 520px; }
-  .news-docs a { display: block; border: 1px solid var(--line); transition: opacity .25s; }
-  .news-docs a:hover { opacity: .7; }
+  .news-docs .ex-view { border: 1px solid var(--line); }
   .news-docs img { width: 100%; }
   .news-docs figcaption { font-size: 13px; margin-top: 8px; }
   .news-images .ph { aspect-ratio: 4 / 3; height: auto; }
@@ -435,8 +434,8 @@ const HOME_SLIDES = WORKS.filter((w) => w.cover).map((w) => w.id);
 // Its `id` is used for the link from the Profile page (#/exhibitions/<id>).
 // - text:      paragraphs (e.g. a press release)
 // - links:     { label, url } – gallery page, reviews...
-// - documents: { label, image, href } – poster, floor plan; the image is
-//              shown, clicking opens `href` (e.g. a PDF) in a new tab
+// - documents: { label, image } – poster, floor plan; clicking opens them
+//              in the on-site viewer
 // - images:    installation views, in order
 const EXHIBITIONS = [
   {
@@ -447,8 +446,8 @@ const EXHIBITIONS = [
     year: 2026,
     venue: "Cave, Pimlico, London",
     documents: [
-      { label: "Poster", image: "images/cryptic-threshold/poster.jpg", href: "images/cryptic-threshold/poster.jpg" },
-      { label: "Floor plan", image: "images/cryptic-threshold/floorplan.jpg", href: "images/cryptic-threshold/floorplan.pdf" },
+      { label: "Poster", image: "images/cryptic-threshold/poster.jpg" },
+      { label: "Floor plan", image: "images/cryptic-threshold/floorplan.jpg" },
     ],
     images: [1, 2, 3, 4, 5, 6].map((n) => `images/cryptic-threshold/view${n}.jpg`),
   },
@@ -596,20 +595,24 @@ function makeSlider(root, start = 0, onChange) {
 /* ---- Installation view viewer ---- */
 let lightboxSlider = null;
 let lightboxReturn = null;
-function openLightbox(exId, start) {
+function openLightbox(exId, kind, start) {
   const e = EXHIBITIONS.find((x) => x.id === exId);
-  const n = e.images.length;
+  const items = kind === "docs"
+    ? e.documents.map((d) => ({ src: d.image, label: d.label }))
+    : e.images.map((src, k) => ({ src, label: `Installation view ${k + 1} / ${e.images.length}` }));
+  const n = items.length;
   const lb = $("#lightbox");
+  lb.setAttribute("aria-label", kind === "docs" ? "Poster and floor plan" : "Installation views");
   lb.innerHTML = `
     <button type="button" class="lb-close" aria-label="Close">×</button>
     <div class="work">
       <button type="button" class="arrow prev" aria-label="Previous photo">${chevron("M20 1 2 20l18 19")}</button>
       <figure>
         <div class="photos">
-          ${e.images.map((src, k) => `<div class="photo">${img(src, `${e.title}, installation view ${k + 1} of ${n}`)}</div>`).join("")}
+          ${items.map((it) => `<div class="photo">${img(it.src, `${e.title}, ${it.label}`)}</div>`).join("")}
         </div>
         ${n > 1 ? `<div class="dots" aria-label="Photos">
-          ${e.images.map((_, k) => `<button type="button" class="dot" aria-label="Installation view ${k + 1} of ${n}"></button>`).join("")}
+          ${items.map((it) => `<button type="button" class="dot" aria-label="${esc(it.label)}"></button>`).join("")}
         </div>` : ""}
         <figcaption>
           <p class="work-title">${esc(e.title)}</p>
@@ -622,7 +625,7 @@ function openLightbox(exId, start) {
   lb.hidden = false;
   document.body.style.overflow = "hidden";
   lightboxSlider = makeSlider(lb, start, (k) => {
-    $("#lb-meta").textContent = `Installation view ${k + 1} / ${n} · ${e.venue}, ${e.dates}`;
+    $("#lb-meta").textContent = `${items[k].label} · ${e.venue}, ${e.dates}`;
   });
   lb.querySelector(".arrow.prev").addEventListener("click", () => lightboxSlider.step(-1));
   lb.querySelector(".arrow.next").addEventListener("click", () => lightboxSlider.step(1));
@@ -668,15 +671,15 @@ function renderExhibitions() {
         <ul class="news-links">${e.links.map((l) => l.url
           ? `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a></li>`
           : `<li class="todo">${esc(l.label)}</li>`).join("")}</ul>` : ""}
-        ${e.documents && e.documents.length ? `<div class="news-docs">${e.documents.map((d) => `
-          <figure><a href="${esc(d.href || d.image)}" target="_blank" rel="noopener">${img(d.image, d.label)}</a><figcaption>${esc(d.label)}</figcaption></figure>`).join("")}</div>` : ""}
+        ${e.documents && e.documents.length ? `<div class="news-docs">${e.documents.map((d, k) => `
+          <figure><button type="button" class="ex-view" data-ex="${e.id}" data-kind="docs" data-i="${k}" aria-label="Open ${esc(d.label.toLowerCase())}">${img(d.image, d.label)}</button><figcaption>${esc(d.label)}</figcaption></figure>`).join("")}</div>` : ""}
         ${e.images && e.images.length ? `<h3 class="news-sub">Installation views</h3>
         <div class="news-images">${e.images.map((src, n) => `
           <button type="button" class="ex-view" data-ex="${e.id}" data-i="${n}" aria-label="Open installation view ${n + 1}">${img(src, `Installation view ${n + 1}`)}</button>`).join("")}</div>` : ""}
       </div>
     </li>`).join("");
   document.querySelectorAll(".ex-view").forEach((b) =>
-    b.addEventListener("click", () => openLightbox(b.dataset.ex, +b.dataset.i)));
+    b.addEventListener("click", () => openLightbox(b.dataset.ex, b.dataset.kind, +b.dataset.i)));
   document.querySelectorAll(".news-row").forEach((row) =>
     row.addEventListener("click", () => setNewsOpen(row.parentElement, !row.parentElement.classList.contains("open"))));
 }
