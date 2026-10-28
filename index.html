@@ -362,17 +362,6 @@
 <p class="copyright">© TASHA NG KER XIN<br>All Rights Reserved.</p>
 
 <script>
-/* =========================================================
-   EDIT YOUR CONTENT HERE
-   - `cover`: thumbnail on Works + image on the home slideshow.
-     Leave it out and a grey placeholder is shown instead.
-   - `photos`: slider on the work's own page, clear views first,
-     then macro views. Leave it out and the cover is shown.
-   - Paths are relative to this page, e.g. "images/work-1/cover.jpg".
-   - `ratio` (width / height of the cover) sizes the thumbnail, so
-     every work gets the same visual weight in the grid.
-   - Leave out title / medium / size / date if unknown.
-   ========================================================= */
 
 const SLIDE_SECONDS = 3;   // how long each work stays on the home page
 
@@ -427,16 +416,8 @@ const WORKS = [
   },
 ];
 
-// Home page slideshow: every work that has a cover, in the order above.
 const HOME_SLIDES = WORKS.filter((w) => w.cover).map((w) => w.id);
 
-// Each exhibition is a row on the Exhibitions page that opens into a full post.
-// Its `id` is used for the link from the Profile page (#/exhibitions/<id>).
-// - text:      paragraphs (e.g. a press release)
-// - links:     { label, url } – gallery page, reviews...
-// - documents: { label, image } – poster, floor plan; clicking opens them
-//              in the on-site viewer
-// - images:    installation views, in order
 const EXHIBITIONS = [
   {
     id: "cryptic-threshold",
